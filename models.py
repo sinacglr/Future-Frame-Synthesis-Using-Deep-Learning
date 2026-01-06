@@ -6,7 +6,7 @@ import config
 
 BN = nn.BatchNorm2d
 
-class VisualDynamicsModel(nn.Module):
+class FutureFramePredictionModel(nn.Module):
     def __init__(self, z_dim=config.Z_DIM):
         super().__init__()
         self.z_dim = z_dim
