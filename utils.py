@@ -42,18 +42,14 @@ def visualize_empirical(model, loader, z_pool, epoch):
 
     im1 = batch['im1'][:num_show].to(device)
     im2 = batch['im2'][:num_show].to(device)
-    v_gt = batch['v'][:num_show].to(device)
-
-    v_recon, _, _ = model(im1, v_gt)
-    recon_img = (im1 + (v_recon / config.SIGNAL_GAIN)).clamp(0, 1)
 
     idx = torch.randint(0, z_pool.size(0), (num_show,))
     z_sampled = z_pool[idx].to(device)
     v_emp = model(im1, None, z_input=z_sampled)
     emp_img = (im1 + (v_emp / config.SIGNAL_GAIN)).clamp(0, 1)
 
-    fig, axes = plt.subplots(num_show, 4, figsize=(10, 22))
-    plt.suptitle(f"Epoch {epoch} | Input -> Target | Recon | Empirical", fontsize=14, y=1.005)
+    fig, axes = plt.subplots(num_show, 3, figsize=(10, 22))
+    plt.suptitle(f"Epoch {epoch} | Input -> Target | Prediction", fontsize=14, y=1.005)
 
     for i in range(num_show):
         axes[i,0].imshow(im1[i].permute(1,2,0).cpu())
@@ -64,13 +60,9 @@ def visualize_empirical(model, loader, z_pool, epoch):
         axes[i,1].axis('off')
         if i==0: axes[i,1].set_title("Target")
 
-        axes[i,2].imshow(recon_img[i].permute(1,2,0).cpu())
+        axes[i,2].imshow(emp_img[i].permute(1,2,0).cpu())
         axes[i,2].axis('off')
-        if i==0: axes[i,2].set_title("Recon")
-
-        axes[i,3].imshow(emp_img[i].permute(1,2,0).cpu())
-        axes[i,3].axis('off')
-        if i==0: axes[i,3].set_title("Empirical")
+        if i==0: axes[i,2].set_title("Prediction (Empirical)")
 
     plt.tight_layout()
     plt.show()
