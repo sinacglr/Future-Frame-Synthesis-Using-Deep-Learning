@@ -5,8 +5,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import config
-from dataset import smart_prepare_data, InMemoryVisualDynamicsDataset
-from models import VisualDynamicsModel
+from dataset import prepare_data, FutureFramePredictionDataset
+from models import FutureFramePredictionModel
 from utils import set_seed, kld_loss, collect_empirical_z, visualize_empirical
 
 def parse_args():
@@ -34,11 +34,11 @@ def main():
     print(f"Data Root: {args.data_root}")
     print(f"Save Dir: {args.save_dir}")
 
-    video_map = smart_prepare_data(zip_root=args.data_root, extract_root=args.extract_root)
+    video_map = prepare_data(zip_root=args.data_root, extract_root=args.extract_root)
     if not video_map: return
 
-    train_ds = InMemoryVisualDynamicsDataset(video_map, config.VIDEO_CONFIG, augment=True, split_mode='train')
-    test_ds = InMemoryVisualDynamicsDataset(video_map, config.VIDEO_CONFIG, augment=False, split_mode='test')
+    train_ds = FutureFramePredictionDataset(video_map, config.VIDEO_CONFIG, augment=True, split_mode='train')
+    test_ds = FutureFramePredictionDataset(video_map, config.VIDEO_CONFIG, augment=False, split_mode='test')
 
     if len(train_ds) == 0:
         print("ERROR: No pairs created.")
@@ -48,7 +48,7 @@ def main():
     viz_loader = DataLoader(test_ds, batch_size=16, shuffle=True)
     pool_loader = DataLoader(train_ds, batch_size=32, shuffle=True)
 
-    model = VisualDynamicsModel(z_dim=config.Z_DIM).cuda()
+    model = FutureFramePredictionModel(z_dim=config.Z_DIM).cuda()
     optimizer = optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
 
@@ -111,7 +111,7 @@ def main():
         if current_loss < best_loss:
             best_loss = current_loss
             torch.save(model.state_dict(), best_model_path)
-            print(f"Best Model Saved. ({best_loss:.4f})")
+            print(f"Saved Best Model. ({best_loss:.4f})")
 
         if ep % 5 == 0:
             z_pool = collect_empirical_z(model, pool_loader, num_samples=300)
@@ -122,7 +122,7 @@ def main():
             if ep % 25 == 0:
                 backup_path = os.path.join(args.save_dir, f"human_backup_ep{ep}.pt")
                 torch.save(model.state_dict(), backup_path)
-                print(f"Backup Model Saved: {backup_path}")
+                print(f"Saved Backup Model: {backup_path}")
 
 if __name__ == "__main__":
     main()
